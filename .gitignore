@@ -33,6 +33,7 @@ Thumbs.db
 irrigation-analytics
 cmd/server/server
 cmd/seed/seed
+main
 
 # Environment files
 .env
