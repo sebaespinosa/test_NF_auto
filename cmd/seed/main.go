@@ -31,8 +31,9 @@ func main() {
 
 	log.Println("Connected to database, starting seed...")
 
-	// Seed random number generator
-	rand.Seed(time.Now().UnixNano())
+	// Create random number generator
+	randSource := rand.NewSource(time.Now().UnixNano())
+	rng := rand.New(randSource)
 
 	// Create farms
 	farms := []model.Farm{
@@ -76,20 +77,20 @@ func main() {
 		for month := 1; month <= 12; month++ {
 			// Generate 3-5 events per month per sector
 			for _, sector := range sectors {
-				eventsPerMonth := rand.Intn(3) + 3 // 3-5 events
+				eventsPerMonth := rng.Intn(3) + 3 // 3-5 events
 
 				for i := 0; i < eventsPerMonth; i++ {
-					day := rand.Intn(28) + 1 // Days 1-28 to avoid month-end issues
-					hour := rand.Intn(24)
-					minute := rand.Intn(60)
+					day := rng.Intn(28) + 1 // Days 1-28 to avoid month-end issues
+					hour := rng.Intn(24)
+					minute := rng.Intn(60)
 
 					startTime := time.Date(year, time.Month(month), day, hour, minute, 0, 0, time.UTC)
-					endTime := startTime.Add(time.Duration(rand.Intn(120)+30) * time.Minute) // 30-150 minutes
+					endTime := startTime.Add(time.Duration(rng.Intn(120)+30) * time.Minute) // 30-150 minutes
 
 					// Generate realistic irrigation amounts (in mm)
-					nominalAmount := float32(rand.Intn(20) + 5) // 5-25 mm
+					nominalAmount := float32(rng.Intn(20) + 5) // 5-25 mm
 					// Real amount is usually 70-95% of nominal (simulating efficiency)
-					efficiencyFactor := 0.7 + rand.Float32()*0.25
+					efficiencyFactor := 0.7 + rng.Float32()*0.25
 					realAmount := nominalAmount * efficiencyFactor
 
 					irrigationData := model.IrrigationData{
