@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -45,13 +46,19 @@ func formatValue(v interface{}) string {
 	switch val := v.(type) {
 	case string:
 		return val
-	case int, int64, uint, uint64:
-		return string(rune(val.(int)))
+	case int:
+		return fmt.Sprintf("%d", val)
+	case int64:
+		return fmt.Sprintf("%d", val)
+	case uint:
+		return fmt.Sprintf("%d", val)
+	case uint64:
+		return fmt.Sprintf("%d", val)
 	case float64:
-		return string(rune(int(val)))
+		return fmt.Sprintf("%f", val)
 	case time.Duration:
 		return val.String()
 	default:
-		return ""
+		return fmt.Sprintf("%v", v)
 	}
 }
