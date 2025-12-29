@@ -1,0 +1,55 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Application binaries
+irrigation-analytics
+cmd/server/server
+cmd/seed/seed
+
+# Environment files
+.env
+.env.local
+
+# TLS certificates (except for development)
+*.pem
+*.crt
+*.key
+
+# Temporary files
+/tmp/
+*.tmp
+
+# Database files
+*.db
+*.sqlite
+
+# Docker volumes
+postgres_data/
