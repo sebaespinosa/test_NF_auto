@@ -1,0 +1,386 @@
+openapi: 3.0.0
+info:
+  title: Irrigation Analytics API
+  description: REST API service for irrigation data analytics with year-over-year comparisons
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://localhost:8443
+    description: Development server (HTTPS with self-signed certificate)
+  - url: http://localhost:8080
+    description: Development server (HTTP, no TLS)
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the service
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+
+  /metrics:
+    get:
+      summary: Service metrics
+      description: Returns service metrics including request counts and latencies
+      tags:
+        - Monitoring
+      responses:
+        '200':
+          description: Service metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_requests:
+                    type: integer
+                    example: 1234
+                  total_errors:
+                    type: integer
+                    example: 5
+                  average_latency:
+                    type: string
+                    example: "45ms"
+                  requests_by_path:
+                    type: object
+                    additionalProperties:
+                      type: integer
+
+  /v1/farms/{farm_id}/irrigation/analytics:
+    get:
+      summary: Get irrigation analytics
+      description: |
+        Retrieves comprehensive irrigation analytics for a farm including:
+        - Current period metrics
+        - Year-over-year comparisons (1 and 2 years ago)
+        - Time-series data (daily/weekly/monthly)
+        - Sector-level breakdown
+      tags:
+        - Analytics
+      parameters:
+        - name: farm_id
+          in: path
+          required: true
+          description: Unique identifier of the farm
+          schema:
+            type: integer
+            example: 1
+        
+        - name: start_date
+          in: query
+          required: false
+          description: Start date for analytics period (ISO 8601 format)
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        
+        - name: end_date
+          in: query
+          required: false
+          description: End date for analytics period (ISO 8601 format)
+          schema:
+            type: string
+            format: date
+            example: "2024-01-31"
+        
+        - name: sector_id
+          in: query
+          required: false
+          description: Filter results by specific irrigation sector
+          schema:
+            type: integer
+            example: 1
+        
+        - name: aggregation
+          in: query
+          required: false
+          description: Level of time-series aggregation
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+            default: daily
+            example: daily
+
+      responses:
+        '200':
+          description: Successful response with analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+              example:
+                farm_id: 1
+                period:
+                  start: "2024-01-01T00:00:00Z"
+                  end: "2024-01-31T23:59:59Z"
+                aggregation: "daily"
+                metrics:
+                  total_irrigation_volume_mm: 450.5
+                  total_irrigation_events: 120
+                  average_efficiency: 0.85
+                  efficiency_range:
+                    min: 0.72
+                    max: 0.98
+                  same_period_-1:
+                    total_irrigation_volume_mm: 420.3
+                    total_irrigation_events: 115
+                    average_efficiency: 0.82
+                    efficiency_range:
+                      min: 0.70
+                      max: 0.95
+                  same_period_-2:
+                    total_irrigation_volume_mm: 480.1
+                    total_irrigation_events: 125
+                    average_efficiency: 0.88
+                    efficiency_range:
+                      min: 0.75
+                      max: 0.99
+                  period_comparison:
+                    vs_same_period_-1:
+                      volume_change_percent: 7.2
+                      events_change_percent: 4.3
+                      efficiency_change_percent: 3.7
+                    vs_same_period_-2:
+                      volume_change_percent: -6.2
+                      events_change_percent: -4.0
+                      efficiency_change_percent: -3.4
+                time_series:
+                  - date: "2024-01-01"
+                    nominal_amount_mm: 12.5
+                    real_amount_mm: 10.8
+                    efficiency: 0.864
+                    event_count: 3
+                sector_breakdown:
+                  - sector_id: 1
+                    sector_name: "Sector A"
+                    total_volume_mm: 150.2
+                    average_efficiency: 0.88
+
+        '400':
+          description: Bad request - Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidFarmId:
+                  value:
+                    error: "Invalid farm_id"
+                invalidDate:
+                  value:
+                    error: "Invalid start_date format. Use ISO 8601 (e.g., 2024-01-01 or 2024-01-01T00:00:00Z)"
+                invalidAggregation:
+                  value:
+                    error: "Invalid aggregation. Must be one of: daily, weekly, monthly"
+                invalidDateRange:
+                  value:
+                    error: "end_date must be after start_date"
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Failed to retrieve analytics"
+
+components:
+  schemas:
+    AnalyticsResponse:
+      type: object
+      required:
+        - farm_id
+        - period
+        - aggregation
+        - metrics
+        - time_series
+        - sector_breakdown
+      properties:
+        farm_id:
+          type: integer
+          description: Farm identifier
+        period:
+          $ref: '#/components/schemas/Period'
+        aggregation:
+          type: string
+          enum: [daily, weekly, monthly]
+          description: Aggregation level used
+        metrics:
+          $ref: '#/components/schemas/Metrics'
+        time_series:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSeriesEntry'
+          description: Time-series data points
+        sector_breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectorBreakdown'
+          description: Per-sector statistics
+
+    Period:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+          description: Period start time (ISO 8601)
+        end:
+          type: string
+          format: date-time
+          description: Period end time (ISO 8601)
+
+    Metrics:
+      type: object
+      properties:
+        total_irrigation_volume_mm:
+          type: number
+          format: float
+          description: Total irrigation volume in millimeters
+        total_irrigation_events:
+          type: integer
+          description: Total number of irrigation events
+        average_efficiency:
+          type: number
+          format: float
+          description: Average irrigation efficiency (real_amount / nominal_amount)
+          minimum: 0
+          maximum: 1
+        efficiency_range:
+          $ref: '#/components/schemas/EfficiencyRange'
+        same_period_-1:
+          $ref: '#/components/schemas/PeriodMetrics'
+          description: Metrics from the same period 1 year ago (optional)
+        same_period_-2:
+          $ref: '#/components/schemas/PeriodMetrics'
+          description: Metrics from the same period 2 years ago (optional)
+        period_comparison:
+          $ref: '#/components/schemas/PeriodComparison'
+          description: Year-over-year percentage changes (optional)
+
+    EfficiencyRange:
+      type: object
+      properties:
+        min:
+          type: number
+          format: float
+          description: Minimum efficiency observed
+        max:
+          type: number
+          format: float
+          description: Maximum efficiency observed
+
+    PeriodMetrics:
+      type: object
+      properties:
+        total_irrigation_volume_mm:
+          type: number
+          format: float
+        total_irrigation_events:
+          type: integer
+        average_efficiency:
+          type: number
+          format: float
+        efficiency_range:
+          $ref: '#/components/schemas/EfficiencyRange'
+
+    PeriodComparison:
+      type: object
+      properties:
+        vs_same_period_-1:
+          $ref: '#/components/schemas/ComparisonMetrics'
+          description: Comparison with 1 year ago
+        vs_same_period_-2:
+          $ref: '#/components/schemas/ComparisonMetrics'
+          description: Comparison with 2 years ago
+
+    ComparisonMetrics:
+      type: object
+      properties:
+        volume_change_percent:
+          type: number
+          format: float
+          description: Percentage change in total volume
+        events_change_percent:
+          type: number
+          format: float
+          description: Percentage change in event count
+        efficiency_change_percent:
+          type: number
+          format: float
+          description: Percentage change in average efficiency
+
+    TimeSeriesEntry:
+      type: object
+      properties:
+        date:
+          type: string
+          description: Date of the data point (format depends on aggregation)
+          example: "2024-01-01"
+        nominal_amount_mm:
+          type: number
+          format: float
+          description: Total nominal irrigation amount in mm
+        real_amount_mm:
+          type: number
+          format: float
+          description: Total real irrigation amount in mm
+        efficiency:
+          type: number
+          format: float
+          description: Efficiency for this period
+        event_count:
+          type: integer
+          description: Number of irrigation events
+
+    SectorBreakdown:
+      type: object
+      properties:
+        sector_id:
+          type: integer
+          description: Sector identifier
+        sector_name:
+          type: string
+          description: Sector name
+        total_volume_mm:
+          type: number
+          format: float
+          description: Total irrigation volume for this sector
+        average_efficiency:
+          type: number
+          format: float
+          description: Average efficiency for this sector
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Invalid farm_id"
+
+tags:
+  - name: Analytics
+    description: Irrigation analytics endpoints
+  - name: Health
+    description: Service health endpoints
+  - name: Monitoring
+    description: Service monitoring and metrics
